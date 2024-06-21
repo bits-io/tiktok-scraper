@@ -1,5 +1,7 @@
 # FastAPI Project
 
+Development in python v3.12g
+
 ## Table of Contents
 
 - [Requirements](#requirements)
