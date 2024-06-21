@@ -1,6 +1,6 @@
 # FastAPI Project
 
-Development in python v3.12g
+Development in python v3.12
 
 ## Table of Contents
 
