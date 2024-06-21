@@ -13,13 +13,13 @@ app = FastAPI()
 webdriver_path = 'C:\\chromedriver-win64\\chromedriver.exe'  # Update this with the correct path
 
 @app.get("/")
-async def home():
+async def root():
     return {
         "status": True,
         "message": "This scrape app"
     }
 
-@app.post("/fetch_tiktok_data/")
+@app.post("/user-info/")
 async def fetch_tiktok_data(username: str):
     try:
         # Set up Chrome options
@@ -28,6 +28,14 @@ async def fetch_tiktok_data(username: str):
         chrome_options.add_argument("--disable-gpu")  # Disable GPU acceleration
         chrome_options.add_argument('--no-sandbox')
         chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument("start-maximized")  # Open browser in maximized mode
+        chrome_options.add_argument("disable-infobars")  # Disable infobars
+        chrome_options.add_argument("--disable-extensions")  # Disable extensions
+        chrome_options.add_argument("--disable-dev-shm-usage")  # Overcome limited resource problems
+        chrome_options.add_argument("--no-sandbox")  # Bypass OS security model
+        chrome_options.add_argument('--disable-blink-features=AutomationControlled')  # Disable automation-controlled
+        chrome_options.add_argument(
+            f'user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
 
         # Set up the WebDriver service
         service = Service(webdriver_path)
@@ -38,12 +46,12 @@ async def fetch_tiktok_data(username: str):
         driver.get(url)
 
         # Wait for the page to load completely (optional)
-        driver.implicitly_wait(10)  # Wait for 10 seconds
+        driver.implicitly_wait(1)  # Wait for 10 seconds
 
         # Scroll down the page to ensure all elements are loaded
-        for _ in range(3):  # Adjust the range as needed to scroll more times
+        for _ in range(20):  # Adjust the range as needed to scroll more times
             driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.END)
-            time.sleep(2)  # Adjust the sleep time as needed
+            time.sleep(1)  # Adjust the sleep time as needed
 
         # Get the page source and parse it with BeautifulSoup
         html = driver.page_source
@@ -77,7 +85,7 @@ async def fetch_tiktok_data(username: str):
             "likes_count": likes_count,
             "bio": bio,
             "user_link": user_link,
-            "post_count": post_list,
+            "post_count": len(post_list.find_all(attrs={"data-e2e": "user-post-item"})),
             "user_avatar": img_tag['src']
         }
 

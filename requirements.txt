@@ -1,0 +1,14 @@
+fastapi==0.111.0
+uvicorn
+sqlalchemy
+alembic==1.13.1
+pydantic
+mysqlclient
+python-dotenv
+selenium
+beautifulsoup4
+python-jose
+pydantic-settings
+pymysql
+passlib
+bcrypt
