@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
@@ -11,7 +13,12 @@ def get_user_by_email(db: Session, email: str):
 def create_user(db: Session, user: UserCreate):
     try:
         hashed_password = get_password_hash(user.password)
-        db_user = User(email=user.email, hashed_password=hashed_password)
+        db_user = User(
+            name=user.name,
+            email=user.email,
+            password=hashed_password,
+            avatar=user.avatar,
+        )
         db.add(db_user)
         db.commit()
         db.refresh(db_user)
@@ -22,6 +29,6 @@ def create_user(db: Session, user: UserCreate):
 
 def authenticate_user(db: Session, email: str, password: str):
     user = get_user_by_email(db, email)
-    if not user or not verify_password(password, user.hashed_password):
+    if not user or not verify_password(password, user.password):
         return False
     return user

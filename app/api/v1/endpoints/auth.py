@@ -15,10 +15,9 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
         create_user(db, user)
         return {"message": "Success registration"}
     except HTTPException as e:
-        raise HTTPException(status_code=e.status_code, detail=e.detail)
+        raise HTTPException(status_code=400, detail=e.detail)
     except Exception as e:
-        raise HTTPException(status_code=500, detail="An unexpected error occurred")
-
+        raise HTTPException(status_code=500, detail=e)
 
 @router.post("/login", response_model=Token)
 def login(user: UserLogin, db: Session = Depends(get_db)):
