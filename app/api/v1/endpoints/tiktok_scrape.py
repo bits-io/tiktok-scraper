@@ -7,10 +7,10 @@ from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
 import time
 import logging
-
+from app.core.config import settings
 
 # Path to your Chrome WebDriver executable
-webdriver_path = 'C:\\chromedriver-win64\\chromedriver.exe'  # Update this with the correct path
+webdriver_path = settings.WEBDRIVER_DIR
 
 logging.basicConfig(level=logging.INFO)
 
@@ -29,8 +29,7 @@ async def fetch_tiktok_data(username: str):
         chrome_options.add_argument("disable-infobars")  # Disable infobars
         chrome_options.add_argument("--disable-extensions")  # Disable extensions
         chrome_options.add_argument("--disable-blink-features=AutomationControlled")  # Disable automation-controlled
-        chrome_options.add_argument(
-            'user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
+        chrome_options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
 
         # Set up the WebDriver service
         service = Service(webdriver_path)
