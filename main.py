@@ -6,11 +6,14 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
 import time
+import logging
 
 app = FastAPI()
 
 # Path to your Chrome WebDriver executable
 webdriver_path = 'C:\\chromedriver-win64\\chromedriver.exe'  # Update this with the correct path
+
+logging.basicConfig(level=logging.INFO)
 
 @app.get("/")
 async def root():
@@ -31,11 +34,9 @@ async def fetch_tiktok_data(username: str):
         chrome_options.add_argument("start-maximized")  # Open browser in maximized mode
         chrome_options.add_argument("disable-infobars")  # Disable infobars
         chrome_options.add_argument("--disable-extensions")  # Disable extensions
-        chrome_options.add_argument("--disable-dev-shm-usage")  # Overcome limited resource problems
-        chrome_options.add_argument("--no-sandbox")  # Bypass OS security model
-        chrome_options.add_argument('--disable-blink-features=AutomationControlled')  # Disable automation-controlled
+        chrome_options.add_argument("--disable-blink-features=AutomationControlled")  # Disable automation-controlled
         chrome_options.add_argument(
-            f'user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
+            'user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
 
         # Set up the WebDriver service
         service = Service(webdriver_path)
@@ -45,8 +46,8 @@ async def fetch_tiktok_data(username: str):
         url = f'https://www.tiktok.com/@{username}'
         driver.get(url)
 
-        # Wait for the page to load completely (optional)
-        driver.implicitly_wait(1)  # Wait for 10 seconds
+        # Wait for the page to load completely
+        time.sleep(5)  # Give some time for the page to load
 
         # Scroll down the page to ensure all elements are loaded
         for _ in range(20):  # Adjust the range as needed to scroll more times
@@ -60,21 +61,21 @@ async def fetch_tiktok_data(username: str):
         # Close the WebDriver
         driver.quit()
 
-        # Find the required data
-        username = soup.find(attrs={"data-e2e": "user-title"}).get_text()
-        name = soup.find(attrs={"data-e2e": "user-subtitle"}).get_text()
-        following_count = soup.find(attrs={"data-e2e": "following-count"}).get_text()
-        followers_count = soup.find(attrs={"data-e2e": "followers-count"}).get_text()
-        likes_count = soup.find(attrs={"data-e2e": "likes-count"}).get_text()
-        bio = soup.find(attrs={"data-e2e": "user-bio"}).get_text()
-        user_link = soup.find(attrs={"data-e2e": "user-link"}).get_text()
+        # Find the required data with conditional assignments
+        username = soup.find(attrs={"data-e2e": "user-title"}).get_text() if soup.find(attrs={"data-e2e": "user-title"}) else ""
+        name = soup.find(attrs={"data-e2e": "user-subtitle"}).get_text() if soup.find(attrs={"data-e2e": "user-subtitle"}) else ""
+        following_count = soup.find(attrs={"data-e2e": "following-count"}).get_text() if soup.find(attrs={"data-e2e": "following-count"}) else ""
+        followers_count = soup.find(attrs={"data-e2e": "followers-count"}).get_text() if soup.find(attrs={"data-e2e": "followers-count"}) else ""
+        likes_count = soup.find(attrs={"data-e2e": "likes-count"}).get_text() if soup.find(attrs={"data-e2e": "likes-count"}) else ""
+        bio = soup.find(attrs={"data-e2e": "user-bio"}).get_text() if soup.find(attrs={"data-e2e": "user-bio"}) else ""
+        user_link = soup.find(attrs={"data-e2e": "user-link"}).get_text() if soup.find(attrs={"data-e2e": "user-link"}) else ""
 
         user_avatar = soup.find(attrs={"data-e2e": "user-avatar"})
-        img_tag = user_avatar.find('img')
+        img_tag = user_avatar.find('img') if user_avatar else None
 
         post_list = soup.find(attrs={"data-e2e": "user-post-item-list"})
 
-        print(soup.prettify())
+        post_count = len(post_list.find_all(attrs={"data-e2e": "user-post-item"})) if post_list else 0
 
         # Construct the response
         response = {
@@ -85,11 +86,12 @@ async def fetch_tiktok_data(username: str):
             "likes_count": likes_count,
             "bio": bio,
             "user_link": user_link,
-            "post_count": len(post_list.find_all(attrs={"data-e2e": "user-post-item"})),
-            "user_avatar": img_tag['src']
+            "post_count": post_count,
+            "user_avatar": img_tag['src'] if img_tag else None
         }
 
         return response
 
     except Exception as e:
+        logging.error(f"An error occurred: {e}")
         raise HTTPException(status_code=500, detail=str(e))
