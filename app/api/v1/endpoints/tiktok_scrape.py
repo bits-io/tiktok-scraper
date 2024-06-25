@@ -17,11 +17,11 @@ logging.basicConfig(level=logging.INFO)
 router = APIRouter()
 
 # Define the valid token
-VALID_TOKEN = "your_hardcoded_token_here"
+X_API_KEY = "secret-key-123"
 
 # Dependency function to validate the token
-def validate_token(x_token_key: str = Header(...)):
-    if x_token_key != VALID_TOKEN:
+def validate_token(x_api_key: str = Header(None)):
+    if x_api_key is None or x_api_key != X_API_KEY:
         raise HTTPException(status_code=401, detail="Invalid or missing x-token-key header")
 
 @router.get("/user-info/", dependencies=[Depends(validate_token)])
@@ -37,7 +37,8 @@ async def fetch_tiktok_data(username: str):
         chrome_options.add_argument("disable-infobars")  # Disable infobars
         chrome_options.add_argument("--disable-extensions")  # Disable extensions
         chrome_options.add_argument("--disable-blink-features=AutomationControlled")  # Disable automation-controlled
-        chrome_options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
+        chrome_options.add_argument(
+            "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36")
 
         # Set up the WebDriver service
         service = Service(webdriver_path)
@@ -89,6 +90,73 @@ async def fetch_tiktok_data(username: str):
             "user_link": user_link,
             "post_count": post_count,
             "user_avatar": img_tag['src'] if img_tag else None
+        }
+
+        return response
+
+    except Exception as e:
+        logging.error(f"An error occurred: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get('/content/',dependencies=[Depends(validate_token)])
+async def get_content(username: str, content_id: str):
+    try:
+        # Set up Chrome options
+        chrome_options = Options()
+        chrome_options = Options()
+        chrome_options.add_argument("--headless")  # Run in headless mode
+        chrome_options.add_argument("--disable-gpu")  # Disable GPU acceleration
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument("start-maximized")  # Open browser in maximized mode
+        chrome_options.add_argument("disable-infobars")  # Disable infobars
+        chrome_options.add_argument("--disable-extensions")  # Disable extensions
+        chrome_options.add_argument("--disable-blink-features=AutomationControlled")  # Disable automation-controlled
+        chrome_options.add_argument(
+            "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36")
+
+        # Set up the WebDriver service
+        service = Service(webdriver_path)
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+
+        # Fetch the TikTok page
+        url = f'https://www.tiktok.com/@{username}/video/{content_id}'
+        driver.get(url)
+
+        # Wait for the page to load completely
+        time.sleep(5)  # Give some time for the page to load
+
+        # Scroll down the page to ensure all elements are loaded
+        for _ in range(20):  # Adjust the range as needed to scroll more times
+            driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.END)
+            time.sleep(1)  # Adjust the sleep time as needed
+
+        # Get the page source and parse it with BeautifulSoup
+        html = driver.page_source
+        soup = BeautifulSoup(html, 'html.parser')
+
+        # Close the WebDriver
+        driver.quit()
+
+        # Find the required data with conditional assignments
+        like_count = soup.find(attrs={"data-e2e": "like-count"}).get_text() if soup.find(attrs={"data-e2e": "like-count"}) else ""
+        comment_count = soup.find(attrs={"data-e2e": "comment-count"}).get_text() if soup.find(attrs={"data-e2e": "comment-count"}) else ""
+        undefined_count = soup.find(attrs={"data-e2e": "undefined-count"}).get_text() if soup.find(attrs={"data-e2e": "undefined-count"}) else ""
+        share_count = soup.find(attrs={"data-e2e": "share-count"}).get_text() if soup.find(attrs={"data-e2e": "share-count"}) else ""
+        browse_video_desc = soup.find(attrs={"data-e2e": "browse-video-desc"}).get_text() if soup.find(attrs={"data-e2e": "browse-video-desc"}) else ""
+        created_at = soup.find('span', {'data-e2e': 'browser-nickname'}).find_all('span')[-1].text.strip() if soup.find('span', {'data-e2e': 'browser-nickname'}) else ""
+        browse_music = soup.find(attrs={"data-e2e": "browse-music"}).get_text() if soup.find(attrs={"data-e2e": "browse-music"}) else ""
+
+        # Construct the response
+        response = {
+            "content_id": content_id,
+            "like_count": like_count,
+            "comment_count": comment_count,
+            "undefined_count": undefined_count,
+            "share_count": share_count,
+            "browse_video_desc": browse_video_desc,
+            "browse_music": browse_music,
+            "created_at": created_at
         }
 
         return response
