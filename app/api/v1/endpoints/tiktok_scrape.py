@@ -103,7 +103,6 @@ async def get_content(username: str, content_id: str):
     try:
         # Set up Chrome options
         chrome_options = Options()
-        chrome_options = Options()
         chrome_options.add_argument("--headless")  # Run in headless mode
         chrome_options.add_argument("--disable-gpu")  # Disable GPU acceleration
         chrome_options.add_argument('--no-sandbox')
