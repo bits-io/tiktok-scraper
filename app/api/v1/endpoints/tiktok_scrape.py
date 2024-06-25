@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Header, Depends
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
@@ -16,7 +16,15 @@ logging.basicConfig(level=logging.INFO)
 
 router = APIRouter()
 
-@router.get("/user-info/")
+# Define the valid token
+VALID_TOKEN = "your_hardcoded_token_here"
+
+# Dependency function to validate the token
+def validate_token(x_token_key: str = Header(...)):
+    if x_token_key != VALID_TOKEN:
+        raise HTTPException(status_code=401, detail="Invalid or missing x-token-key header")
+
+@router.get("/user-info/", dependencies=[Depends(validate_token)])
 async def fetch_tiktok_data(username: str):
     try:
         # Set up Chrome options
