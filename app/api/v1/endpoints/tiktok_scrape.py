@@ -134,6 +134,8 @@ async def get_content(username: str, content_id: str):
         html = driver.page_source
         soup = BeautifulSoup(html, 'html.parser')
 
+        print(soup.prettify())
+
         # Close the WebDriver
         driver.quit()
 
@@ -143,6 +145,7 @@ async def get_content(username: str, content_id: str):
         undefined_count = soup.find(attrs={"data-e2e": "undefined-count"}).get_text() if soup.find(attrs={"data-e2e": "undefined-count"}) else ""
         share_count = soup.find(attrs={"data-e2e": "share-count"}).get_text() if soup.find(attrs={"data-e2e": "share-count"}) else ""
         browse_video_desc = soup.find(attrs={"data-e2e": "browse-video-desc"}).get_text() if soup.find(attrs={"data-e2e": "browse-video-desc"}) else ""
+        browse_video = soup.find('div', class_='tiktok-web-player no-controls').find('video')['src'] if soup.find('div', class_='tiktok-web-player no-controls').find('video') else ""
         created_at = soup.find('span', {'data-e2e': 'browser-nickname'}).find_all('span')[-1].text.strip() if soup.find('span', {'data-e2e': 'browser-nickname'}) else ""
         browse_music = soup.find(attrs={"data-e2e": "browse-music"}).get_text() if soup.find(attrs={"data-e2e": "browse-music"}) else ""
 
@@ -154,6 +157,7 @@ async def get_content(username: str, content_id: str):
             "undefined_count": undefined_count,
             "share_count": share_count,
             "browse_video_desc": browse_video_desc,
+            "browse_video": browse_video,
             "browse_music": browse_music,
             "created_at": created_at
         }
