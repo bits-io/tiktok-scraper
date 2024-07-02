@@ -167,3 +167,101 @@ async def get_content(username: str, content_id: str):
     except Exception as e:
         logging.error(f"An error occurred: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+def init_driver(webdriver_path):
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")  # Run in headless mode
+    chrome_options.add_argument("--disable-gpu")  # Disable GPU acceleration
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument("start-maximized")  # Open browser in maximized mode
+    chrome_options.add_argument("disable-infobars")  # Disable infobars
+    chrome_options.add_argument("--disable-extensions")  # Disable extensions
+    chrome_options.add_argument("--disable-blink-features=AutomationControlled")  # Disable automation-controlled
+    chrome_options.add_argument(
+        "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36")
+
+    service = Service(webdriver_path)
+    driver = webdriver.Chrome(service=service, options=chrome_options)
+    return driver
+
+def fetch_page_source(driver, url):
+    driver.get(url)
+    time.sleep(5)  # Give some time for the page to load
+    for _ in range(20):  # Adjust the range as needed to scroll more times
+        driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.END)
+        time.sleep(1)  # Adjust the sleep time as needed
+    return driver.page_source
+
+@router.get("/user-content/", dependencies=[Depends(validate_token)])
+async def fetch_tiktok_data(username: str):
+    try:
+        driver = init_driver(webdriver_path)
+        url = f'https://www.tiktok.com/@{username}'
+        html = fetch_page_source(driver, url)
+        soup = BeautifulSoup(html, 'html.parser')
+
+        post_list = soup.find(attrs={"data-e2e": "user-post-item-list"})
+        post_count = len(post_list.find_all(attrs={"data-e2e": "user-post-item"})) if post_list else 0
+
+        content_list = []
+        if post_list:
+            for post_item in post_list.find_all(attrs={"data-e2e": "user-post-item"}):
+                a_tag = post_item.find('a', href=True)
+                img_tag = post_item.find('img', src=True)
+
+                if a_tag and img_tag:
+                    post_url = a_tag['href']
+                    post_html = fetch_page_source(driver, post_url)
+                    post_soup = BeautifulSoup(post_html, 'html.parser')
+
+                    like_count = post_soup.find(attrs={"data-e2e": "like-count"})
+                    like_count = like_count.get_text() if like_count else ""
+
+                    comment_count = post_soup.find(attrs={"data-e2e": "comment-count"})
+                    comment_count = comment_count.get_text() if comment_count else ""
+
+                    undefined_count = post_soup.find(attrs={"data-e2e": "undefined-count"})
+                    undefined_count = undefined_count.get_text() if undefined_count else ""
+
+                    share_count = post_soup.find(attrs={"data-e2e": "share-count"})
+                    share_count = share_count.get_text() if share_count else ""
+
+                    browse_video_desc = post_soup.find(attrs={"data-e2e": "browse-video-desc"})
+                    browse_video_desc = browse_video_desc.get_text() if browse_video_desc else ""
+
+                    browse_video = post_soup.find('div', class_='tiktok-web-player no-controls')
+                    browse_video = browse_video.find('video')['src'] if browse_video and browse_video.find('video') else ""
+
+                    created_at = post_soup.find('span', {'data-e2e': 'browser-nickname'})
+                    created_at = created_at.find_all('span')[-1].text.strip() if created_at and created_at.find_all('span') else ""
+
+                    browse_music = post_soup.find(attrs={"data-e2e": "browse-music"})
+                    browse_music = browse_music.get_text() if browse_music else ""
+
+                    content_list.append({
+                        'link': a_tag['href'],
+                        'thumbnail': img_tag['src'],
+                        "like_count": like_count,
+                        "comment_count": comment_count,
+                        "undefined_count": undefined_count,
+                        "share_count": share_count,
+                        "browse_video_desc": browse_video_desc,
+                        "browse_video": browse_video,
+                        "browse_music": browse_music,
+                        "created_at": created_at
+                    })
+
+        driver.quit()
+
+        response = {
+            "post_count": post_count,
+            "content_list": content_list
+        }
+
+        return response
+
+    except Exception as e:
+        logging.error(f"An error occurred: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
