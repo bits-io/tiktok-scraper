@@ -1,4 +1,4 @@
-# FastAPI Project
+    # FastAPI Project
 
 Development in python v3.12
 
@@ -31,7 +31,7 @@ This project requires the following dependencies:
 - pymysql==1.1.1
 - passlib==1.7.4
 - bcrypt==4.1.3
-
+    
 ## Installation
 
 ```bash
