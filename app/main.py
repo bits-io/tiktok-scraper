@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.api.v1.endpoints import auth, me, tiktok_scrape
+from app.api.v1.endpoints import auth, me, tiktok_scrape, youtube_scrape
 from app.db.session import engine
 from app.db.base import Base
 
@@ -11,6 +11,7 @@ app = FastAPI()
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(me.router, prefix="/api/v1/me", tags=["me"])
 app.include_router(tiktok_scrape.router, prefix="/api/v1/tiktok-scrape", tags=["tiktok_scrape"])
+app.include_router(youtube_scrape.router, prefix="/api/v1/youtube-scrape", tags=["youtube_scrape"])
 
 if __name__ == "__main__":
     import uvicorn
